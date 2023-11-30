@@ -27,6 +27,7 @@
 #include "the_player.h"
 #include "the_button.h"
 #include "help_section.h"
+#include "settings_window.h"
 
 // read in videos and thumbnails to this directory
 std::vector<TheButtonInfo> getInfoIn (QStringList fileNames) {
@@ -76,9 +77,11 @@ int main(int argc, char *argv[]) {
     // create the Qt Application
     QApplication app(argc, argv);
 
-    help_section w;
-    w.show();
+    // display settings page
+    Settings_Window s;
+    s.show();
 
+    /*
     // create window
     QWidget window;
 
@@ -143,6 +146,7 @@ int main(int argc, char *argv[]) {
 
     // showtime!
     window.show();
+    */
 
     // wait for the app to terminate
     return app.exec();

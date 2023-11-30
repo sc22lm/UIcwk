@@ -10,6 +10,7 @@ CONFIG += c++11
 SOURCES += \
         help_section.cpp \
         help_widget.cpp \
+        settings_window.cpp \
         the_button.cpp \
         the_player.cpp \
         tomeo.cpp
@@ -17,12 +18,14 @@ SOURCES += \
 HEADERS += \
     help_section.h \
     help_widget.h \
+    settings_window.h \
     the_button.h \
     the_player.h
 
 FORMS += \
     help_section.ui \
-    help_widget.ui
+    help_widget.ui \
+    settings_window.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -30,7 +33,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    resources.qrc \
     resources.qrc
 
 
