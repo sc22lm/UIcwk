@@ -23,44 +23,46 @@
 #include <QMessageBox>
 #include <QtCore/QDir>
 #include <QtCore/QDirIterator>
+#include <QFileDialog>
 #include "the_player.h"
 #include "the_button.h"
+#include "help_section.h"
 
 // read in videos and thumbnails to this directory
-std::vector<TheButtonInfo> getInfoIn (std::string loc) {
-
+std::vector<TheButtonInfo> getInfoIn (QStringList fileNames) {
     std::vector<TheButtonInfo> out =  std::vector<TheButtonInfo>();
-    QDir dir(QString::fromStdString(loc) );
-    QDirIterator it(dir);
 
-    while (it.hasNext()) { // for all files
+    // create image reader to read thumbnails
+    QImageReader* imageReader = new QImageReader();
 
-        QString f = it.next();
+    // iterate through each selected video file for thumbnails
+    for (QString file: fileNames) {
+        // split the name of the video file and look for a png sharing the same name
+        QString thumb = file.split(".")[0] + ".png";
 
-            if (f.contains("."))
+        // ensure png thumbnail exists
+        if (QFile(thumb).exists()) {
+            // update image reader and read thumbnail
+            imageReader->setFileName(thumb);
+            QImage sprite = imageReader->read();
 
-#if defined(_WIN32)
-            if (f.contains(".wmv"))  { // windows
-#else
-            if (f.contains(".mp4") || f.contains("MOV"))  { // mac/linux
-#endif
-
-            QString thumb = f.left( f .length() - 4) +".png";
-            if (QFile(thumb).exists()) { // if a png thumbnail exists
-                QImageReader *imageReader = new QImageReader(thumb);
-                    QImage sprite = imageReader->read(); // read the thumbnail
-                    if (!sprite.isNull()) {
-                        QIcon* ico = new QIcon(QPixmap::fromImage(sprite)); // voodoo to create an icon for the button
-                        QUrl* url = new QUrl(QUrl::fromLocalFile( f )); // convert the file location to a generic url
-                        out . push_back(TheButtonInfo( url , ico  ) ); // add to the output list
-                    }
-                    else
-                        qDebug() << "warning: skipping video because I couldn't process thumbnail " << thumb << endl;
+            // ensure sprite was read
+            if (!sprite.isNull()) {
+                QIcon* ico = new QIcon(QPixmap::fromImage(sprite)); // voodoo to create an icon for the button
+                QUrl* url = new QUrl(QUrl::fromLocalFile(file)); // convert the file location to a generic url
+                out.push_back(TheButtonInfo(url, ico)); // add to the output list
             }
-            else
-                qDebug() << "warning: skipping video because I couldn't find thumbnail " << thumb << endl;
+            else {
+                qDebug() << "warning: skipping video because I couldn't process thumbnail " << thumb << Qt::endl;
+            }
+        }
+        else {
+            qDebug() << "warning: skipping video because I could't find thumbnail" << thumb << Qt::endl;
         }
     }
+
+    // free imageReader when done
+    delete imageReader;
 
     return out;
 }
@@ -69,19 +71,31 @@ std::vector<TheButtonInfo> getInfoIn (std::string loc) {
 int main(int argc, char *argv[]) {
 
     // let's just check that Qt is operational first
-    qDebug() << "Qt version: " << QT_VERSION_STR << endl;
+    qDebug() << "Qt version: " << QT_VERSION_STR << Qt::endl;
 
     // create the Qt Application
     QApplication app(argc, argv);
 
-    // collect all the videos in the folder
+    help_section w;
+    w.show();
+
+    // create window
+    QWidget window;
+
+    // open file dialogue to select videos
+    QFileDialog dialogue(&window);
+    dialogue.setFileMode(QFileDialog::ExistingFiles);
+    dialogue.setNameFilter("Videos (*.MOV *.mp4 *.wmv)");
+    dialogue.setViewMode(QFileDialog::List);
+
+    // list of filenames and the videos opened
+    QStringList fileNames;
     std::vector<TheButtonInfo> videos;
-
-    if (argc == 2)
-        videos = getInfoIn( std::string(argv[1]) );
-
-    if (videos.size() == 0) {
-
+    if (dialogue.exec()) {
+        fileNames = dialogue.selectedFiles();
+        videos = getInfoIn(fileNames);
+    }
+    else {
         const int result = QMessageBox::information(
                     NULL,
                     QString("Tomeo"),
@@ -117,8 +131,7 @@ int main(int argc, char *argv[]) {
     // tell the player what buttons and videos are available
     player->setContent(&buttons, & videos);
 
-    // create the main window and layout
-    QWidget window;
+    // create the layout
     QVBoxLayout *top = new QVBoxLayout();
     window.setLayout(top);
     window.setWindowTitle("tomeo");

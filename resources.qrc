@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>logo.png</file>
+        <file>help-icon.png</file>
+        <file>post-icon.png</file>
+        <file>friends-icon.png</file>
+    </qresource>
+</RCC>
