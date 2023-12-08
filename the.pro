@@ -10,7 +10,6 @@ CONFIG += c++11
 SOURCES += \
         help_section.cpp \
         help_widget.cpp \
-        homepage.cpp \
         settings_window.cpp \
         the_button.cpp \
         the_player.cpp \
@@ -19,7 +18,6 @@ SOURCES += \
 HEADERS += \
     help_section.h \
     help_widget.h \
-    homepage.h \
     settings_window.h \
     the_button.h \
     the_player.h

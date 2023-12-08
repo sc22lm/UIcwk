@@ -11,7 +11,7 @@ void ThePlayer::setContent(std::vector<TheButton*>* b, std::vector<TheButtonInfo
     jumpTo(buttons -> at(0) -> info);
 }
 
-// change the image and video for one button every one second
+// change the image and video for one button every ossne second
 void ThePlayer::shuffle() {
     TheButtonInfo* i = & infos -> at (rand() % infos->size() );
 //        setMedia(*i->url);

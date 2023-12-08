@@ -28,98 +28,93 @@
 #include "the_button.h"
 #include "help_section.h"
 #include "settings_window.h"
-#include "homepage.h"
 #include <QLabel>
+#include <QScrollArea>
 
 // read in videos and thumbnails to this directory
-std::vector<TheButtonInfo> getInfoIn (QStringList fileNames) {
-    std::vector<TheButtonInfo> out =  std::vector<TheButtonInfo>();
+std::vector<TheButtonInfo> getInfoIn (std::string loc) {
 
-    // create image reader to read thumbnails
-    QImageReader* imageReader = new QImageReader();
+   std::vector<TheButtonInfo> out =  std::vector<TheButtonInfo>();
+   QDir dir(QString::fromStdString(loc) );
+   QDirIterator it(dir);
 
-    // iterate through each selected video file for thumbnails
-    for (QString file: fileNames) {
-        // split the name of the video file and look for a png sharing the same name
-        QString thumb = file.split(".")[0] + ".png";
+   while (it.hasNext()) { // for all files
 
-        // ensure png thumbnail exists
-        if (QFile(thumb).exists()) {
-            // update image reader and read thumbnail
-            imageReader->setFileName(thumb);
-            QImage sprite = imageReader->read();
+       QString f = it.next();
 
-            // ensure sprite was read
-            if (!sprite.isNull()) {
-                QIcon* ico = new QIcon(QPixmap::fromImage(sprite)); // voodoo to create an icon for the button
-                QUrl* url = new QUrl(QUrl::fromLocalFile(file)); // convert the file location to a generic url
-                out.push_back(TheButtonInfo(url, ico)); // add to the output list
-            }
-            else {
-                qDebug() << "warning: skipping video because I couldn't process thumbnail " << thumb << Qt::endl;
-            }
-        }
-        else {
-            qDebug() << "warning: skipping video because I could't find thumbnail" << thumb << Qt::endl;
-        }
-    }
+           if (f.contains("."))
 
-    // free imageReader when done
-    delete imageReader;
+            #if defined(_WIN32)
+           if (f.contains(".wmv"))  { // windows
+            #else
+           if (f.contains(".mp4") || f.contains("MOV"))  { // mac/linux
+            #endif
 
-    return out;
+           QString thumb = f.left( f .length() - 4) +".png";
+           if (QFile(thumb).exists()) { // if a png thumbnail exists
+               QImageReader *imageReader = new QImageReader(thumb);
+                   QImage sprite = imageReader->read(); // read the thumbnail
+                   if (!sprite.isNull()) {
+                       QIcon* ico = new QIcon(QPixmap::fromImage(sprite)); // voodoo to create an icon for the button
+                       QUrl* url = new QUrl(QUrl::fromLocalFile( f )); // convert the file location to a generic url
+                       out . push_back(TheButtonInfo( url , ico  ) ); // add to the output list
+                   }
+                   else
+                       qDebug() << "warning: skipping video because I couldn't process thumbnail " << thumb << endl;
+           }
+           else
+               qDebug() << "warning: skipping video because I couldn't find thumbnail " << thumb << endl;
+       }
+   }
+
+   return out;
 }
 
-
 int main(int argc, char *argv[]) {
-
-    // let's just check that Qt is operational first
-    qDebug() << "Qt version: " << QT_VERSION_STR << Qt::endl;
-
-    // create the Qt Application
     QApplication app(argc, argv);
 
-    // create window
-    QWidget window;
-
-    // open file dialogue to select videos
-    QFileDialog dialogue(&window);
-    dialogue.setFileMode(QFileDialog::ExistingFiles);
-    dialogue.setNameFilter("Videos (*.MOV *.mp4 *.wmv)");
-    dialogue.setViewMode(QFileDialog::List);
-
-    // list of filenames and the videos opened
-    QStringList fileNames;
+    // Collect all the videos in the folder
     std::vector<TheButtonInfo> videos;
-    if (dialogue.exec()) {
-        fileNames = dialogue.selectedFiles();
-        videos = getInfoIn(fileNames);
-    }
-    else {
+
+    if (argc == 2)
+        videos = getInfoIn(std::string(argv[1]));
+
+    if (videos.size() == 0) {
         const int result = QMessageBox::information(
-                    NULL,
-                    QString("Tomeo"),
-                    QString("no videos found! Add command line argument to \"quoted\" file location."));
+            NULL,
+            QString("Tomeo"),
+            QString("No videos found! Add a command line argument for the file location.")
+        );
         exit(-1);
     }
 
-    // the widget that will show the video
-    QVideoWidget *videoWidget = new QVideoWidget;
+    // Set up a scroll area to make the content scrollable
+    QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setStyleSheet("background-color: #3a3b3c");
 
-    // the QMediaPlayer which controls the playback
-    ThePlayer *player = new ThePlayer;
-    player->setVideoOutput(videoWidget);
+    QWidget *scrollWidget = new QWidget();
+    QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollArea->setWidget(scrollWidget);
 
-    // a row of buttons
     QWidget *buttonWidget = new QWidget();
-    // a list of the buttons
     std::vector<TheButton*> buttons;
     // the buttons are arranged horizontally
-    QVBoxLayout *layout = new QVBoxLayout();
+    QHBoxLayout *layout = new QHBoxLayout();
     buttonWidget->setLayout(layout);
 
+    // Add a logo label to the top left corner
+    QLabel *logoLabel = new QLabel();
+    QPixmap logoPixmap(":/images/logo.png");  // Adjust the path to your logo image
+    logoLabel->setPixmap(logoPixmap);
+    logoLabel->setScaledContents(true);
+    logoLabel->setFixedSize(250, 80);  // Adjust the size of the logo
+    logoLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    scrollLayout->addWidget(logoLabel);
+
+
     // Set up polaroid frames with video widgets
-    const int polaroidWidth = 450; // Adjust the width based on your design
+    const int polaroidWidth = 425; // Adjust the width based on your design
     const int polaroidHeight = 550; // Adjust the height based on your design
     const int verticalSpacing = 20; // Adjust the vertical spacing
 
@@ -133,46 +128,43 @@ int main(int argc, char *argv[]) {
         polaroidLabel->move(0, i * (polaroidHeight + verticalSpacing));
 
         // Video widget
-        ThePlayer *mediaPlayer = new ThePlayer;
-        QVideoWidget *videoWidget = new QVideoWidget;
-        mediaPlayer->setVideoOutput(videoWidget);
-        videoWidget->setFixedSize(polaroidWidth, polaroidHeight);
+        ThePlayer *mediaPlayer = new ThePlayer();
+        QVideoWidget *videoWidget = new QVideoWidget();
 
-        // Set up layout for polaroid frame with video widget
-        QVBoxLayout *layout = new QVBoxLayout();
-        layout->addWidget(videoWidget);
-        layout->setContentsMargins(0, 0, 0, 0);
-
-        // Show polaroid frame
-        polaroidLabel->show();
-       }
-
-
-    // create the four buttons
-    for ( int i = 0; i < 4; i++ ) {
         TheButton *button = new TheButton(buttonWidget);
-        button->connect(button, SIGNAL(jumpTo(TheButtonInfo* )), player, SLOT (jumpTo(TheButtonInfo*))); // when clicked, tell the player to play.
+        button->connect(button, SIGNAL(jumpTo(TheButtonInfo* )), mediaPlayer, SLOT (jumpTo(TheButtonInfo*))); // when clicked, tell the player to play.
         buttons.push_back(button);
         layout->addWidget(button);
         button->init(&videos.at(i));
+
+        mediaPlayer->setVideoOutput(videoWidget);
+        mediaPlayer->setContent(&buttons, & videos);
+        mediaPlayer->jumpTo(& videos.at(i));
+        videoWidget->setFixedSize(polaroidWidth, polaroidHeight);
+
+        // Set up layout for polaroid frame with video widget
+        QVBoxLayout *polaroidLayout = new QVBoxLayout();
+        polaroidLayout->addWidget(videoWidget);
+        polaroidLayout->setContentsMargins(0, 0, 0, 0);
+
+
+        // Show polaroid frame
+        polaroidLabel->setLayout(polaroidLayout);
+        scrollLayout->addWidget(polaroidLabel);
     }
 
-    // tell the player what buttons and videos are available
-    player->setContent(&buttons, & videos);
-
-    // create the layout
+    // Create the main window
+    QWidget window;
     QVBoxLayout *top = new QVBoxLayout();
     window.setLayout(top);
-    window.setWindowTitle("tomeo");
-    window.setMaximumSize(480, 800);
+    window.setStyleSheet("background-color: #3a3b3c");
+    window.setWindowTitle("Tomeo");
+    window.setMinimumSize(480, 800);
+    top->addWidget(scrollArea);
 
-    // add the video and the buttons to the top level widget
-    top->addWidget(videoWidget);
-    top->addWidget(buttonWidget);
-
-    // showtime!
+    // Show the main window
     window.show();
 
-    // wait for the app to terminate
+    // Wait for the app to terminate
     return app.exec();
 }
