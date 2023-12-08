@@ -7,5 +7,6 @@
         <file>section-divider.png</file>
         <file>unchecked.png</file>
         <file>checked.png</file>
+        <file>polaroid.png</file>
     </qresource>
 </RCC>

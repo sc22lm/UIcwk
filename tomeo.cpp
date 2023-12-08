@@ -28,6 +28,8 @@
 #include "the_button.h"
 #include "help_section.h"
 #include "settings_window.h"
+#include "homepage.h"
+#include <QLabel>
 
 // read in videos and thumbnails to this directory
 std::vector<TheButtonInfo> getInfoIn (QStringList fileNames) {
@@ -77,11 +79,6 @@ int main(int argc, char *argv[]) {
     // create the Qt Application
     QApplication app(argc, argv);
 
-    // display settings page
-    Settings_Window s;
-    s.show();
-
-    /*
     // create window
     QWidget window;
 
@@ -118,8 +115,37 @@ int main(int argc, char *argv[]) {
     // a list of the buttons
     std::vector<TheButton*> buttons;
     // the buttons are arranged horizontally
-    QHBoxLayout *layout = new QHBoxLayout();
+    QVBoxLayout *layout = new QVBoxLayout();
     buttonWidget->setLayout(layout);
+
+    // Set up polaroid frames with video widgets
+    const int polaroidWidth = 450; // Adjust the width based on your design
+    const int polaroidHeight = 550; // Adjust the height based on your design
+    const int verticalSpacing = 20; // Adjust the vertical spacing
+
+    for (int i = 0; i < videos.size(); ++i) {
+        // Polaroid frame
+        QLabel* polaroidLabel = new QLabel();
+        QPixmap polaroidPixmap(":/images/polaroid.png");
+        polaroidLabel->setPixmap(polaroidPixmap);
+        polaroidLabel->setScaledContents(true);
+        polaroidLabel->setFixedSize(polaroidWidth, polaroidHeight);
+        polaroidLabel->move(0, i * (polaroidHeight + verticalSpacing));
+
+        // Video widget
+        ThePlayer *mediaPlayer = new ThePlayer;
+        QVideoWidget *videoWidget = new QVideoWidget;
+        mediaPlayer->setVideoOutput(videoWidget);
+        videoWidget->setFixedSize(polaroidWidth, polaroidHeight);
+
+        // Set up layout for polaroid frame with video widget
+        QVBoxLayout *layout = new QVBoxLayout();
+        layout->addWidget(videoWidget);
+        layout->setContentsMargins(0, 0, 0, 0);
+
+        // Show polaroid frame
+        polaroidLabel->show();
+       }
 
 
     // create the four buttons
@@ -138,7 +164,7 @@ int main(int argc, char *argv[]) {
     QVBoxLayout *top = new QVBoxLayout();
     window.setLayout(top);
     window.setWindowTitle("tomeo");
-    window.setMinimumSize(800, 680);
+    window.setMaximumSize(480, 800);
 
     // add the video and the buttons to the top level widget
     top->addWidget(videoWidget);
@@ -146,7 +172,6 @@ int main(int argc, char *argv[]) {
 
     // showtime!
     window.show();
-    */
 
     // wait for the app to terminate
     return app.exec();
